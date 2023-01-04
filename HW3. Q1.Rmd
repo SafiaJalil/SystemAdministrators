@@ -1,0 +1,121 @@
+---
+title: "HW3 - Question 1"
+author: "Safia 11012371"
+date: "2022-11-27"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+```{r}
+library(readr)
+library(Hmisc)
+options(scipen = 999)
+q1<- read_csv("SystemAdministrators.csv")
+#View(q1)
+str(q1)
+describe(q1)
+```
+Q1 :part a 
+
+```{r}
+library(ggplot2)
+#factor 
+q1$`Completed task`<- as.factor(q1$`Completed task`)
+#scatterplot 
+ggplot(q1)  +
+  geom_point(aes(x = Training, y = Experience, color = `Completed task`), size = 2) + theme_classic() +ggtitle("Experience vs.Training Distinguishing Programmers Based on Task Completion")
+
+
+```
+#Interprepation from the above scatterplot:
+#From the above graph we can conclude that experience is a good predictor as compared to trainning to classify task completion by the programmer because we can see that as the experience of the programmer increases they become more capable to complete the task. But as compared to that if we see trainning credits of the programmers, we can't say this that the programmers having more trainning credits are capable to complete the task.Also, we can see that experience and trainning also shows realtionship with each other.
+
+
+
+Q1 : part b
+```{r}
+#Running the Logistic Regression Model with both regressors : Experience and Trainning 
+log.reg.q1 <- glm(`Completed task` ~ Training + Experience , data = q1, family = 'binomial'(link = "logit"))
+log.reg.q1 
+
+summary(log.reg.q1)
+round(data.frame(summary(log.reg.q1)$coefficients, odds = exp(coef(log.reg.q1)),5))
+```
+#The positive coffecients means that the probability of completing the task by the programmers is higher.
+#Interpretting each coefficent 
+#For every 1 credit increase in trainning increases the odd of completing the task by 1 respectively, keeping all other varaiables held constant.
+#For every passing month of gaining more experience increases the odd of completing the task by 3 respectively, keeping all other varaiables held constant.
+
+
+
+```{r}
+#Evaluting the performace of our model 
+log.reg.q1.pre <-predict(log.reg.q1, q1[, -3], type = "response")
+head(log.reg.q1.pre)
+# first 5 actual and predicted records
+data.frame(actual = q1$`Completed task`[1:10], predicted = log.reg.q1.pre[1:10])
+#From the above table, our model predicted all 10 observations as Programmers who completed task.
+```
+#To find the percentage of programmers who were classified as failed in performing tasks, amonge who were classified as "successed in completing task", we will perform confusion matrix at cutoff 0.5 probability, as 0.5 is the standard taken.
+
+```{r}
+cfm <- table(q1$`Completed task` , log.reg.q1.pre > 0.5)
+cfm
+prop.table(table(q1$`Completed task` , log.reg.q1.pre > 0.5))
+#To find incorrect classification of the programmers we can calculate using recall formula
+# Recall = classified as actual yes but predicted as no /  classified as actual yes) * 100
+
+(5/15)*100 
+
+##33.3%
+
+#or we can also calculate it as
+(0.06666667/.2)*100
+
+##33.3%
+
+##We can conclude it as amonge the progrmmers who were classified as failing to complete the task are 33.33%
+```
+
+```{r}
+#As we know that when we increase the cutoff probability from the standard cutoff probability which is ususally taken as 0.5, we will get higher False Negative and when we decrease we get higher False Postive.
+#For this case we have taken cutoff probability at 0.5 in the part b and we got 33.33% of programmers incorrectly classified as failing to complete the task but when we decrease the cuttoff probability to 0.25 we can see the decrease in the percentage so we will suggest to decrease the cutoff to get this particular class.
+
+cfm2 <- table(q1$`Completed task` , log.reg.q1.pre > 0.75)
+cfm2
+(8/15) * 100
+cfm3 <- table(q1$`Completed task` , log.reg.q1.pre > 0.25)
+cfm3
+(2/15) * 100
+```
+
+Q1 part d 
+
+```{r}
+#For this question we have 
+#probabilty = 0.5
+#trainning credits = 4 
+#Using this formula given we have probability we will calculate the odds 
+#log(p/(1-p))= β0 + β1*Experience + β2*Trainning
+#To get coefficients we will run this 
+coef(log.reg.q1)
+β0 <- -10.9813061
+β1 <- 1.1269310 
+β2 <- 0.1805094 
+
+#Calculating the LHS of the formula 
+LHS <- log(0.5/(1-0.5))
+
+#Calculating value for experience = LHS-β0-(β2*Trainning))/β1
+ExperienceOfProgrammer<-((LHS-β0-(β2*4))/β1)
+ExperienceOfProgrammer
+
+#From the above we conclude that a programmer must have approximately more than 9 months of full time system admininstrator experience with 4 trainning credits before his or her estimated probability of completing the task exceeds 0.5.
+```
+
+
